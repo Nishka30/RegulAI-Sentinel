@@ -40,6 +40,12 @@ def get_audit_report(text: str) -> dict:
     except Exception as e:
         return {"error": str(e)}
 
+@mcp.tool()
+def get_pattern_report() -> dict:
+    """Analyze historical compliance data and return violation patterns"""
+    from sentinel.agents.agent_pattern_miner import mine_patterns
+    return mine_patterns()
+
 async def scan_endpoint(request: Request):
     body = await request.json()
     text = body.get("text", "")
@@ -49,9 +55,14 @@ async def scan_endpoint(request: Request):
 async def health(request: Request):
     return JSONResponse({"status": "ok"})
 
+async def patterns_endpoint(request: Request):
+    from sentinel.agents.agent_pattern_miner import mine_patterns
+    return JSONResponse(mine_patterns())
+
 routes = [
     Route("/scan", scan_endpoint, methods=["POST"]),
     Route("/health", health, methods=["GET"]),
+    Route("/patterns", patterns_endpoint, methods=["GET"]),
 ]
 
 rest_app = Starlette(routes=routes)
