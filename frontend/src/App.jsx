@@ -18,7 +18,7 @@ function App() {
     setView('loading');
 
     try {
-      const response = await fetch('https://regulai-sentinel-production.up.railway.app/scan', {
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/scan`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
