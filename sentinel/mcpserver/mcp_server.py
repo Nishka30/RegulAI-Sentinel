@@ -1,9 +1,4 @@
 import os
-import sys
-
-# Redirect stderr to log file - keeps stdout clean for MCP protocol
-sys.stderr = open('mcp_error.log', 'w', buffering=1)
-
 from fastmcp import FastMCP
 from sentinel.pipeline.pipeline import run_pipeline
 
@@ -37,9 +32,7 @@ def get_audit_report(text: str) -> dict:
         }
     except Exception as e:
         return {"error": str(e)}
+
 if __name__ == "__main__":
-    import os
-
-    print("Starting MCP server (SSE mode)")
-
-    mcp.run(transport="sse")
+    port = int(os.environ.get("PORT", 8000))
+    mcp.run(transport="sse", host="0.0.0.0", port=port)
