@@ -1,0 +1,6 @@
+[05/03/26 00:34:19] INFO     Processing request of type           server.py:727
+                             ListToolsRequest                                  
+                    INFO     Processing request of type           server.py:727
+                             ListResourcesRequest                              
+                    INFO     Processing request of type           server.py:727
+                             ListResourceTemplatesRequest                      
