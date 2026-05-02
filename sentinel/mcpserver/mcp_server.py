@@ -22,7 +22,7 @@ def get_violations(text: str) -> list:
     """Get only the violations list from a document scan."""
     try:
         return run_pipeline(text).get("violations", [])
-    except Exception as e:
+    except Exception:
         return []
 
 @mcp.tool()
@@ -37,15 +37,9 @@ def get_audit_report(text: str) -> dict:
         }
     except Exception as e:
         return {"error": str(e)}
-
 if __name__ == "__main__":
-    import argparse
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--transport", default="stdio")
-    parser.add_argument("--port", type=int, default=8000)
-    args = parser.parse_args()
-    
-    if args.transport == "sse":
-        mcp.run(transport="sse")
-    else:
-        mcp.run(transport="stdio")
+    import os
+
+    print("Starting MCP server (SSE mode)")
+
+    mcp.run(transport="sse")
