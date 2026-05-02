@@ -24,7 +24,7 @@ OUTPUT FORMAT:
 }}
 """
 
-        result = call_granite(system_prompt, user_prompt)
+        result = call_granite(system_prompt, user_prompt, agent_name="RemediationWriter")
 
         # 🔥 VALIDATION (VERY IMPORTANT)
         if isinstance(result, dict):

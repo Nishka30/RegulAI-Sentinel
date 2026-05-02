@@ -26,7 +26,7 @@ Return exactly this JSON:
   ]
 }}"""
 
-    result = call_granite(system_prompt, user_prompt)
+    result = call_granite(system_prompt, user_prompt, agent_name="RiskScorer")
 
     # If Granite returns empty, score locally using severity map
     if not result or not result.get("scored_violations"):

@@ -30,7 +30,7 @@ Return exactly this JSON and nothing else:
 
 If no violations, return {{"violations": []}}"""
 
-    result = call_granite(system_prompt, user_prompt)
+    result = call_granite(system_prompt, user_prompt, agent_name="ViolationDetector")
     
     if not result:
         return {"violations": []}
