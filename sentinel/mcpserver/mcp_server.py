@@ -1,12 +1,5 @@
-import os
 from fastmcp import FastMCP
 from sentinel.pipeline.pipeline import run_pipeline
-from starlette.applications import Starlette
-from starlette.requests import Request
-from starlette.responses import JSONResponse
-from starlette.routing import Route, Mount
-from starlette.middleware.cors import CORSMiddleware
-import uvicorn
 
 mcp = FastMCP("RegulAI Sentinel")
 
@@ -45,31 +38,7 @@ def get_pattern_report() -> dict:
     from sentinel.agents.agent_pattern_miner import mine_patterns
     return mine_patterns()
 
-async def scan_endpoint(request: Request):
-    body = await request.json()
-    text = body.get("text", "")
-    result = run_pipeline(text)
-    return JSONResponse(result)
-
-async def health(request: Request):
-    return JSONResponse({"status": "ok"})
-
-async def patterns_endpoint(request: Request):
-    from sentinel.agents.agent_pattern_miner import mine_patterns
-    return JSONResponse(mine_patterns())
-
-routes = [
-    Mount("/sse", app=mcp.http_app()),
-    Route("/scan", scan_endpoint, methods=["POST"]),
-    Route("/health", health, methods=["GET"]),
-    Route("/patterns", patterns_endpoint, methods=["GET"]),
-]
-
-app = Starlette(routes=routes)
-app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
-
 if __name__ == "__main__":
-    port = int(os.environ.get("PORT", 8000))
-    uvicorn.run(app, host="0.0.0.0", port=port)
+    mcp.run(transport="stdio")
 
 # Made with Bob

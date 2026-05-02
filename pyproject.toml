@@ -7,7 +7,9 @@ dependencies = [
     "ibm-watsonx-ai",
     "python-dotenv",
     "requests",
-    "fastmcp"
+    "fastmcp",
+    "fastapi",
+    "uvicorn"
 ]
 
 [build-system]
