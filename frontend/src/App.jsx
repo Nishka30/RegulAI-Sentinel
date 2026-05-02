@@ -6,8 +6,11 @@ import './index.css';
 
 function App() {
   const [view, setView] = useState('home');
+  const [tab, setTab] = useState('scan');
   const [documentText, setDocumentText] = useState('');
   const [results, setResults] = useState(null);
+  const [patterns, setPatterns] = useState(null);
+  const [loadingPatterns, setLoadingPatterns] = useState(false);
 
   const handleScan = async () => {
     if (!documentText.trim()) {
@@ -43,6 +46,23 @@ function App() {
     }
   };
 
+  const handleAnalyzePatterns = async () => {
+    setLoadingPatterns(true);
+    try {
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/patterns`);
+      if (!response.ok) {
+        throw new Error('Failed to fetch patterns');
+      }
+      const data = await response.json();
+      setPatterns(data);
+    } catch (error) {
+      console.error('Error:', error);
+      alert('Failed to analyze patterns. Please try again.');
+    } finally {
+      setLoadingPatterns(false);
+    }
+  };
+
   const handleReset = () => {
     setView('home');
     setDocumentText('');
@@ -60,9 +80,9 @@ function App() {
   return (
     <div className="min-h-screen bg-navy">
       {view === 'home' && (
-        <div className="min-h-screen flex items-center justify-center px-4 py-16">
-          <div className="max-w-4xl w-full">
-            <div className="text-center mb-12">
+        <div className="min-h-screen px-4 py-8">
+          <div className="max-w-6xl mx-auto">
+            <div className="text-center mb-8">
               <div className="flex items-center justify-center gap-4 mb-6">
                 <div className="w-16 h-16 bg-gradient-to-br from-ibm-blue to-blue-600 rounded-2xl flex items-center justify-center shadow-lg shadow-ibm-blue/50">
                   <svg className="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -78,24 +98,140 @@ function App() {
               </p>
             </div>
 
-            <div className="bg-gradient-to-br from-gray-800 to-gray-900 rounded-2xl p-8 border border-gray-700 shadow-2xl">
-              <label className="block text-white font-semibold mb-4 text-lg">
-                Document Text
-              </label>
-              <textarea
-                value={documentText}
-                onChange={(e) => setDocumentText(e.target.value)}
-                placeholder="Paste your document text here for compliance analysis..."
-                className="w-full min-h-48 bg-slate-800 text-white border-2 border-gray-700 rounded-xl p-4 focus:outline-none focus:border-ibm-blue transition-colors resize-none placeholder-gray-500"
-              />
-              
+            <div className="flex gap-4 mb-8 justify-center">
               <button
-                onClick={handleScan}
-                className="mt-6 w-full bg-gradient-to-r from-ibm-blue to-blue-700 hover:shadow-lg hover:shadow-ibm-blue/50 text-white font-bold py-4 px-8 rounded-xl transition-all text-lg transform hover:scale-[1.02]"
+                onClick={() => setTab('scan')}
+                className={`px-6 py-3 rounded-xl font-semibold transition-all ${
+                  tab === 'scan'
+                    ? 'bg-ibm-blue text-white shadow-lg shadow-ibm-blue/50'
+                    : 'bg-gray-800 text-gray-400 hover:bg-gray-700'
+                }`}
               >
                 Scan Document
               </button>
+              <button
+                onClick={() => setTab('patterns')}
+                className={`px-6 py-3 rounded-xl font-semibold transition-all ${
+                  tab === 'patterns'
+                    ? 'bg-ibm-blue text-white shadow-lg shadow-ibm-blue/50'
+                    : 'bg-gray-800 text-gray-400 hover:bg-gray-700'
+                }`}
+              >
+                Patterns
+              </button>
             </div>
+
+            {tab === 'scan' && (
+              <div className="bg-gradient-to-br from-gray-800 to-gray-900 rounded-2xl p-8 border border-gray-700 shadow-2xl">
+                <label className="block text-white font-semibold mb-4 text-lg">
+                  Document Text
+                </label>
+                <textarea
+                  value={documentText}
+                  onChange={(e) => setDocumentText(e.target.value)}
+                  placeholder="Paste your document text here for compliance analysis..."
+                  className="w-full min-h-48 bg-slate-800 text-white border-2 border-gray-700 rounded-xl p-4 focus:outline-none focus:border-ibm-blue transition-colors resize-none placeholder-gray-500"
+                />
+                
+                <button
+                  onClick={handleScan}
+                  className="mt-6 w-full bg-gradient-to-r from-ibm-blue to-blue-700 hover:shadow-lg hover:shadow-ibm-blue/50 text-white font-bold py-4 px-8 rounded-xl transition-all text-lg transform hover:scale-[1.02]"
+                >
+                  Scan Document
+                </button>
+              </div>
+            )}
+
+            {tab === 'patterns' && (
+              <div className="space-y-6">
+                <div className="bg-gradient-to-br from-gray-800 to-gray-900 rounded-2xl p-8 border border-gray-700 shadow-2xl">
+                  <h2 className="text-2xl font-bold text-white mb-4">Historical Pattern Analysis</h2>
+                  <p className="text-gray-400 mb-6">Analyze compliance violations across all historical audits</p>
+                  
+                  <button
+                    onClick={handleAnalyzePatterns}
+                    disabled={loadingPatterns}
+                    className="w-full bg-gradient-to-r from-ibm-blue to-blue-700 hover:shadow-lg hover:shadow-ibm-blue/50 text-white font-bold py-4 px-8 rounded-xl transition-all text-lg transform hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {loadingPatterns ? 'Analyzing...' : 'Analyze Patterns'}
+                  </button>
+                </div>
+
+                {loadingPatterns && (
+                  <div className="bg-gradient-to-br from-gray-800 to-gray-900 rounded-2xl p-12 border border-gray-700 shadow-2xl">
+                    <div className="flex items-center justify-center">
+                      <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-ibm-blue"></div>
+                    </div>
+                  </div>
+                )}
+
+                {patterns && !loadingPatterns && (
+                  <div className="space-y-6">
+                    <div className="grid grid-cols-3 gap-6">
+                      <div className="bg-gradient-to-br from-gray-800 to-gray-900 rounded-2xl p-6 border border-gray-700 shadow-xl">
+                        <p className="text-gray-400 text-sm mb-2">Total Documents</p>
+                        <p className="text-4xl font-bold text-white">{patterns.total_documents_analyzed}</p>
+                      </div>
+                      <div className="bg-gradient-to-br from-gray-800 to-gray-900 rounded-2xl p-6 border border-gray-700 shadow-xl">
+                        <p className="text-gray-400 text-sm mb-2">Total Violations</p>
+                        <p className="text-4xl font-bold text-white">{patterns.total_violations}</p>
+                      </div>
+                      <div className="bg-gradient-to-br from-gray-800 to-gray-900 rounded-2xl p-6 border border-gray-700 shadow-xl">
+                        <p className="text-gray-400 text-sm mb-2">HIGH Severity</p>
+                        <p className="text-4xl font-bold text-red-500">{patterns.severity_breakdown?.HIGH || 0}</p>
+                      </div>
+                    </div>
+
+                    <div className="bg-gradient-to-br from-gray-800 to-gray-900 rounded-2xl p-8 border border-gray-700 shadow-xl">
+                      <h3 className="text-2xl font-bold text-white mb-6">Top Violations</h3>
+                      <div className="space-y-4">
+                        {patterns.top_violations?.map((violation, index) => (
+                          <div key={index} className="space-y-2">
+                            <div className="flex justify-between items-center">
+                              <span className="text-ibm-blue font-mono text-sm">{violation.clause_id}</span>
+                              <span className="text-white font-semibold">{violation.count} times</span>
+                            </div>
+                            <div className="w-full bg-gray-700 rounded-full h-3 overflow-hidden">
+                              <div
+                                className="bg-gradient-to-r from-ibm-blue to-blue-600 h-full rounded-full transition-all"
+                                style={{ width: `${(violation.count / patterns.total_violations) * 100}%` }}
+                              ></div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div className="bg-gradient-to-br from-ibm-blue/20 to-blue-900/20 rounded-2xl p-8 border-2 border-ibm-blue/50 shadow-xl">
+                      <h3 className="text-xl font-bold text-ibm-blue mb-4 flex items-center gap-2">
+                        <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
+                          <path d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z" />
+                          <path fillRule="evenodd" d="M4 5a2 2 0 012-2 3 3 0 003 3h2a3 3 0 003-3 2 2 0 012 2v11a2 2 0 01-2 2H6a2 2 0 01-2-2V5zm3 4a1 1 0 000 2h.01a1 1 0 100-2H7zm3 0a1 1 0 000 2h3a1 1 0 100-2h-3zm-3 4a1 1 0 100 2h.01a1 1 0 100-2H7zm3 0a1 1 0 100 2h3a1 1 0 100-2h-3z" clipRule="evenodd" />
+                        </svg>
+                        AI Summary
+                      </h3>
+                      <p className="text-gray-200 leading-relaxed">{patterns.ai_summary}</p>
+                    </div>
+
+                    <div className="bg-gradient-to-br from-gray-800 to-gray-900 rounded-2xl p-8 border border-gray-700 shadow-xl">
+                      <h3 className="text-2xl font-bold text-white mb-6">Document Type Breakdown</h3>
+                      <div className="grid grid-cols-2 gap-4">
+                        {Object.entries(patterns.doc_type_breakdown || {}).map(([type, count]) => (
+                          <div key={type} className="bg-gray-800/50 rounded-lg p-4 border border-gray-700">
+                            <p className="text-gray-400 text-sm mb-1">{type}</p>
+                            <p className="text-2xl font-bold text-white">{count}</p>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div className="text-center text-gray-500 text-sm">
+                      Analyzed at: {new Date(patterns.analyzed_at * 1000).toLocaleString()}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         </div>
       )}
