@@ -1,5 +1,5 @@
 import json
-from core.granite_client import call_granite
+from sentinel.core.granite_client import call_granite
 
 def write_remediations(violations):
     system_prompt = """

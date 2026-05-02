@@ -1,26 +1,20 @@
 import json
-from core.granite_client import call_granite
+from sentinel.core.granite_client import call_granite
+
+SEVERITY_MAP = {"HIGH": 5, "MEDIUM": 3, "LOW": 1}
 
 def score_risks(violations):
-    severity_map = {
-        "HIGH": 5,
-        "MEDIUM": 3,
-        "LOW": 1
-    }
-    
-    system_prompt = "You are a risk assessment analyst. Assign priority scores (1-5) to compliance violations based on their severity and business impact. Return ONLY JSON."
-    
-    violations_text = json.dumps(violations, indent=2)
-    
-    user_prompt = f"""Violations:
-{violations_text}
+    if not violations:
+        return {"scored_violations": []}
 
-For each violation, assign a priority score from 1-5 based on:
-- Severity level (HIGH=5, MEDIUM=3, LOW=1)
-- Business impact
-- Regulatory consequences
+    system_prompt = "You are a risk analyst. Return only valid JSON. No explanations."
 
-Return JSON in this exact format:
+    user_prompt = f"""Score each violation with risk_score and priority (1-5).
+
+VIOLATIONS:
+{json.dumps(violations, indent=2)}
+
+Return exactly this JSON:
 {{
   "scored_violations": [
     {{
@@ -31,15 +25,21 @@ Return JSON in this exact format:
     }}
   ]
 }}"""
-    
-    result = call_granite(system_prompt, user_prompt)
-    
-    for violation in result.get("scored_violations", []):
-        if "risk_score" not in violation:
-            violation["risk_score"] = severity_map.get(violation.get("severity", "LOW"), 1)
-        if "priority" not in violation:
-            violation["priority"] = violation["risk_score"]
-    
-    return result
 
-# Made with Bob
+    result = call_granite(system_prompt, user_prompt)
+
+    # If Granite returns empty, score locally using severity map
+    if not result or not result.get("scored_violations"):
+        return {
+            "scored_violations": [
+                {
+                    "clause_id": v.get("clause_id", ""),
+                    "severity": v.get("severity", "LOW"),
+                    "risk_score": SEVERITY_MAP.get(v.get("severity", "LOW"), 1),
+                    "priority": SEVERITY_MAP.get(v.get("severity", "LOW"), 1)
+                }
+                for v in violations
+            ]
+        }
+
+    return result

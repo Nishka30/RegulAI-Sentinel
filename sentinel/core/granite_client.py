@@ -2,7 +2,7 @@ import json
 import re
 from ibm_watsonx_ai.foundation_models import ModelInference
 from ibm_watsonx_ai.metanames import GenTextParamsMetaNames as Params
-from config.settings import WATSONX_URL, WATSONX_APIKEY, PROJECT_ID
+from sentinel.config.settings import WATSONX_URL, WATSONX_APIKEY, PROJECT_ID
 
 model = ModelInference(
     model_id="ibm/granite-4-h-small",
@@ -21,22 +21,40 @@ model = ModelInference(
 
 def call_granite(system_prompt, user_prompt):
     full_prompt = f"{system_prompt}\n\n{user_prompt}"
-    
     response = model.generate_text(full_prompt)
     response = str(response).strip()
-    print("RAW RESPONSE:", repr(response))
-    
+
+    # Strip everything before first {
+    json_start = response.find('{')
+    if json_start > 0:
+        response = response[json_start:]
+
+    # Remove markdown fences
     cleaned = re.sub(r'^```json\s*', '', response)
+    cleaned = re.sub(r'^```\s*', '', cleaned)
     cleaned = re.sub(r'\s*```$', '', cleaned)
     cleaned = cleaned.strip()
-    
+
     if not cleaned:
         return {}
-    
+
+    # Fix control characters inside string values
+    cleaned = cleaned.replace('\r', ' ').replace('\t', ' ')
+    cleaned = re.sub(r'(?<!\\)\n', ' ', cleaned)
+
     try:
         return json.loads(cleaned)
     except json.JSONDecodeError:
-        match = re.search(r'\{.*\}', cleaned, re.DOTALL)
-        if match:
-            return json.loads(match.group())
-        return {}
+        try:
+            open_braces = cleaned.count('{') - cleaned.count('}')
+            open_brackets = cleaned.count('[') - cleaned.count(']')
+            cleaned += ']' * open_brackets + '}' * open_braces
+            return json.loads(cleaned)
+        except json.JSONDecodeError:
+            match = re.search(r'\{.*\}', cleaned, re.DOTALL)
+            if match:
+                try:
+                    return json.loads(match.group())
+                except:
+                    return {}
+            return {}

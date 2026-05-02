@@ -1,0 +1,12 @@
+{
+  "mcpServers": {
+    "regulai-sentinel": {
+      "command": "python",
+      "args": ["-m", "sentinel.mcpserver.mcp_server"],
+      "cwd": "C:/Users/user/OneDrive/Desktop/sentinal",
+      "env": {
+        "PYTHONIOENCODING": "utf-8"
+      }
+    }
+  }
+}

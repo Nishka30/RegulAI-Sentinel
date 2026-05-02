@@ -1,6 +1,8 @@
 import requests
 import json
-from sentinel.config.settings import CLOUDANT_URL, CLOUDANT_APIKEY
+
+CLOUDANT_URL = "https://caa33a5a-b6f9-4a40-9f5d-b66edffcb10d-bluemix.cloudantnosqldb.appdomain.cloud"
+CLOUDANT_APIKEY = "GX9x7GMIc489tQcH7W4_phqR6nPwlOoH5ZmPAxMDw6mE"
 
 def get_iam_token(api_key):
     response = requests.post(

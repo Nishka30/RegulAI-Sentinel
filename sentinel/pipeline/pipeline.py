@@ -1,10 +1,10 @@
 import json
-from agents.agent_doc_ingest import ingest_document
-from agents.agent_reg_map import get_frameworks
-from agents.agent_violation_detector import detect_violations
-from agents.agent_risk_scorer import score_risks
-from agents.agent_remediation_writer import write_remediations
-from agents.agent_audit_logger import log_audit
+from sentinel.agents.agent_doc_ingest import ingest_document
+from sentinel.agents.agent_reg_map import get_frameworks
+from sentinel.agents.agent_violation_detector import detect_violations
+from sentinel.agents.agent_risk_scorer import score_risks
+from sentinel.agents.agent_remediation_writer import write_remediations
+from sentinel.agents.agent_audit_logger import log_audit
 
 def run_pipeline(text):
     doc_result = ingest_document(text)
@@ -48,6 +48,5 @@ if __name__ == "__main__":
     """
     
     result = run_pipeline(sample_text)
-    print(json.dumps(result, indent=2))
 
 # Made with Bob
