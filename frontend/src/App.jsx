@@ -167,36 +167,59 @@ function App() {
 
                 {patterns && !loadingPatterns && (
                   <div className="space-y-6">
-                    <div className="grid grid-cols-3 gap-6">
-                      <div className="bg-gradient-to-br from-gray-800 to-gray-900 rounded-2xl p-6 border border-gray-700 shadow-xl">
-                        <p className="text-gray-400 text-sm mb-2">Total Documents</p>
-                        <p className="text-4xl font-bold text-white">{patterns.total_documents_analyzed}</p>
+                    <div className="flex justify-between items-start mb-6">
+                      <div className="grid grid-cols-4 gap-6 flex-1">
+                        <div className="bg-gradient-to-br from-gray-800 to-gray-900 rounded-2xl p-6 border border-gray-700 shadow-xl">
+                          <p className="text-gray-400 text-sm mb-2">Total Documents</p>
+                          <p className="text-4xl font-bold text-white">{patterns.total_documents_analyzed}</p>
+                        </div>
+                        <div className="bg-gradient-to-br from-gray-800 to-gray-900 rounded-2xl p-6 border border-gray-700 shadow-xl">
+                          <p className="text-gray-400 text-sm mb-2">Total Violations</p>
+                          <p className="text-4xl font-bold text-white">{patterns.total_violations}</p>
+                        </div>
+                        <div className="bg-gradient-to-br from-gray-800 to-gray-900 rounded-2xl p-6 border border-gray-700 shadow-xl">
+                          <p className="text-gray-400 text-sm mb-2">HIGH Severity</p>
+                          <p className="text-4xl font-bold text-red-500">{patterns.severity_breakdown?.HIGH || 0}</p>
+                        </div>
+                        <div className="bg-gradient-to-br from-gray-800 to-gray-900 rounded-2xl p-6 border border-gray-700 shadow-xl">
+                          <p className="text-gray-400 text-sm mb-2">Riskiest Clause</p>
+                          <p className="text-lg font-bold text-ibm-blue truncate">{patterns.riskiest_clause || 'N/A'}</p>
+                        </div>
                       </div>
-                      <div className="bg-gradient-to-br from-gray-800 to-gray-900 rounded-2xl p-6 border border-gray-700 shadow-xl">
-                        <p className="text-gray-400 text-sm mb-2">Total Violations</p>
-                        <p className="text-4xl font-bold text-white">{patterns.total_violations}</p>
-                      </div>
-                      <div className="bg-gradient-to-br from-gray-800 to-gray-900 rounded-2xl p-6 border border-gray-700 shadow-xl">
-                        <p className="text-gray-400 text-sm mb-2">HIGH Severity</p>
-                        <p className="text-4xl font-bold text-red-500">{patterns.severity_breakdown?.HIGH || 0}</p>
+                      <div className={`ml-4 px-4 py-2 rounded-lg font-semibold ${
+                        patterns.trend === 'increasing' ? 'bg-red-900/30 text-red-400 border border-red-700' :
+                        patterns.trend === 'decreasing' ? 'bg-green-900/30 text-green-400 border border-green-700' :
+                        'bg-gray-700 text-gray-300 border border-gray-600'
+                      }`}>
+                        {patterns.trend === 'increasing' ? '⬆ Increasing' :
+                         patterns.trend === 'decreasing' ? '⬇ Decreasing' :
+                         '➡ Stable'}
                       </div>
                     </div>
 
                     <div className="bg-gradient-to-br from-gray-800 to-gray-900 rounded-2xl p-8 border border-gray-700 shadow-xl">
                       <h3 className="text-2xl font-bold text-white mb-6">Top Violations</h3>
-                      <div className="space-y-4">
+                      <div className="space-y-6">
                         {patterns.top_violations?.map((violation, index) => (
-                          <div key={index} className="space-y-2">
-                            <div className="flex justify-between items-center">
-                              <span className="text-ibm-blue font-mono text-sm">{violation.clause_id}</span>
-                              <span className="text-white font-semibold">{violation.count} times</span>
+                          <div key={index} className="bg-gray-800/50 rounded-xl p-5 border border-gray-700">
+                            <div className="flex justify-between items-center mb-3">
+                              <span className="text-ibm-blue font-mono text-sm bg-ibm-blue/10 px-3 py-1 rounded-lg">
+                                {violation.clause_id}
+                              </span>
+                              <span className="bg-amber-600 text-white px-3 py-1 rounded-full text-xs font-bold">
+                                Risk: {violation.avg_risk_score}
+                              </span>
                             </div>
-                            <div className="w-full bg-gray-700 rounded-full h-3 overflow-hidden">
+                            <p className="text-gray-400 text-sm mb-3 leading-relaxed">{violation.clause_description}</p>
+                            <div className="w-full bg-gray-700 rounded-full h-3 overflow-hidden mb-2">
                               <div
                                 className="bg-gradient-to-r from-ibm-blue to-blue-600 h-full rounded-full transition-all"
                                 style={{ width: `${(violation.count / patterns.total_violations) * 100}%` }}
                               ></div>
                             </div>
+                            <p className="text-gray-500 text-xs">
+                              Affected docs: {violation.affected_docs?.length || 0} | Last seen: {new Date(violation.last_seen * 1000).toLocaleDateString()}
+                            </p>
                           </div>
                         ))}
                       </div>
@@ -205,8 +228,7 @@ function App() {
                     <div className="bg-gradient-to-br from-ibm-blue/20 to-blue-900/20 rounded-2xl p-8 border-2 border-ibm-blue/50 shadow-xl">
                       <h3 className="text-xl font-bold text-ibm-blue mb-4 flex items-center gap-2">
                         <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
-                          <path d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z" />
-                          <path fillRule="evenodd" d="M4 5a2 2 0 012-2 3 3 0 003 3h2a3 3 0 003-3 2 2 0 012 2v11a2 2 0 01-2 2H6a2 2 0 01-2-2V5zm3 4a1 1 0 000 2h.01a1 1 0 100-2H7zm3 0a1 1 0 000 2h3a1 1 0 100-2h-3zm-3 4a1 1 0 100 2h.01a1 1 0 100-2H7zm3 0a1 1 0 100 2h3a1 1 0 100-2h-3z" clipRule="evenodd" />
+                          <path fillRule="evenodd" d="M6.267 3.455a3.066 3.066 0 001.745-.723 3.066 3.066 0 013.976 0 3.066 3.066 0 001.745.723 3.066 3.066 0 012.812 2.812c.051.643.304 1.254.723 1.745a3.066 3.066 0 010 3.976 3.066 3.066 0 00-.723 1.745 3.066 3.066 0 01-2.812 2.812 3.066 3.066 0 00-1.745.723 3.066 3.066 0 01-3.976 0 3.066 3.066 0 00-1.745-.723 3.066 3.066 0 01-2.812-2.812 3.066 3.066 0 00-.723-1.745 3.066 3.066 0 010-3.976 3.066 3.066 0 00.723-1.745 3.066 3.066 0 012.812-2.812zm7.44 5.252a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
                         </svg>
                         AI Summary
                       </h3>
@@ -214,14 +236,51 @@ function App() {
                     </div>
 
                     <div className="bg-gradient-to-br from-gray-800 to-gray-900 rounded-2xl p-8 border border-gray-700 shadow-xl">
-                      <h3 className="text-2xl font-bold text-white mb-6">Document Type Breakdown</h3>
-                      <div className="grid grid-cols-2 gap-4">
-                        {Object.entries(patterns.doc_type_breakdown || {}).map(([type, count]) => (
-                          <div key={type} className="bg-gray-800/50 rounded-lg p-4 border border-gray-700">
-                            <p className="text-gray-400 text-sm mb-1">{type}</p>
-                            <p className="text-2xl font-bold text-white">{count}</p>
-                          </div>
-                        ))}
+                      <h3 className="text-2xl font-bold text-white mb-6">Repeat Offenders</h3>
+                      <div className="overflow-x-auto">
+                        <table className="w-full">
+                          <thead className="bg-gray-900/80">
+                            <tr>
+                              <th className="px-6 py-3 text-left text-xs font-bold text-gray-400 uppercase">Document ID</th>
+                              <th className="px-6 py-3 text-left text-xs font-bold text-gray-400 uppercase">Violations</th>
+                              <th className="px-6 py-3 text-left text-xs font-bold text-gray-400 uppercase">Type</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-gray-700">
+                            {patterns.repeat_offenders?.map((offender, index) => (
+                              <tr key={index} className="hover:bg-gray-700/50 transition-colors">
+                                <td className="px-6 py-4 text-sm font-mono text-gray-300">
+                                  {offender.doc_id.substring(0, 8)}...
+                                </td>
+                                <td className="px-6 py-4">
+                                  <span className="bg-red-600 text-white px-3 py-1 rounded-full text-xs font-bold">
+                                    {offender.violation_count}
+                                  </span>
+                                </td>
+                                <td className="px-6 py-4">
+                                  <span className="bg-ibm-blue/20 text-ibm-blue px-3 py-1 rounded-full text-xs font-semibold">
+                                    {offender.doc_type}
+                                  </span>
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-3 gap-6">
+                      <div className="bg-gradient-to-br from-red-900/30 to-red-800/20 rounded-2xl p-6 border-2 border-red-700/50 shadow-xl">
+                        <p className="text-red-400 text-sm font-semibold mb-2">HIGH Severity</p>
+                        <p className="text-4xl font-bold text-red-500">{patterns.severity_breakdown?.HIGH || 0}</p>
+                      </div>
+                      <div className="bg-gradient-to-br from-amber-900/30 to-amber-800/20 rounded-2xl p-6 border-2 border-amber-700/50 shadow-xl">
+                        <p className="text-amber-400 text-sm font-semibold mb-2">MEDIUM Severity</p>
+                        <p className="text-4xl font-bold text-amber-500">{patterns.severity_breakdown?.MEDIUM || 0}</p>
+                      </div>
+                      <div className="bg-gradient-to-br from-green-900/30 to-green-800/20 rounded-2xl p-6 border-2 border-green-700/50 shadow-xl">
+                        <p className="text-green-400 text-sm font-semibold mb-2">LOW Severity</p>
+                        <p className="text-4xl font-bold text-green-500">{patterns.severity_breakdown?.LOW || 0}</p>
                       </div>
                     </div>
 
