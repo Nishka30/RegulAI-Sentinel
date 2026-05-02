@@ -1,5 +1,5 @@
 import json
-from granite_client import call_granite
+from core.granite_client import call_granite
 
 def score_risks(violations):
     severity_map = {

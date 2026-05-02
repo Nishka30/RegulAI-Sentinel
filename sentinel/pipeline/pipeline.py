@@ -1,10 +1,10 @@
 import json
-from agent_doc_ingest import ingest_document
-from agent_reg_map import get_frameworks
-from agent_violation_detector import detect_violations
-from agent_risk_scorer import score_risks
-from agent_remediation_writer import write_remediations
-from agent_audit_logger import log_audit
+from agents.agent_doc_ingest import ingest_document
+from agents.agent_reg_map import get_frameworks
+from agents.agent_violation_detector import detect_violations
+from agents.agent_risk_scorer import score_risks
+from agents.agent_remediation_writer import write_remediations
+from agents.agent_audit_logger import log_audit
 
 def run_pipeline(text):
     doc_result = ingest_document(text)

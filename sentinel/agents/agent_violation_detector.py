@@ -1,5 +1,5 @@
 import json
-from granite_client import call_granite
+from core.granite_client import call_granite
 
 def detect_violations(text, frameworks):
     system_prompt = "You are a compliance analyst. Return only valid JSON. No explanations. No markdown."

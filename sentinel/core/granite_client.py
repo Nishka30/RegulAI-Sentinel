@@ -13,7 +13,7 @@ model = ModelInference(
     project_id=PROJECT_ID,
     params={
         Params.DECODING_METHOD: "greedy",
-        Params.MAX_NEW_TOKENS: 800,
+        Params.MAX_NEW_TOKENS: 1500,
         Params.MIN_NEW_TOKENS: 5,
         Params.REPETITION_PENALTY: 1.1
     }
