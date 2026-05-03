@@ -1,12 +1,1 @@
-{
-  "mcpServers": {
-    "regulai-sentinel": {
-      "command": "python",
-      "args": ["-m", "sentinel.mcpserver.mcp_server"],
-      "cwd": "C:/Users/user/OneDrive/Desktop/sentinal",
-      "env": {
-        "PYTHONIOENCODING": "utf-8"
-      }
-    }
-  }
-}
+{"mcpServers":{"regulai-sentinel":{"command":"python","args":["-m","sentinel.mcpserver.mcp_server"],"cwd":"C:/Users/user/OneDrive/Desktop/sentinal","env":{"PYTHONIOENCODING":"utf-8"},"alwaysAllow":["scan_document","get_violations","get_audit_report","get_pattern_report"]}}}
