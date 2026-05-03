@@ -133,11 +133,20 @@ export default function App() {
   const [results, setResults]     = useState(null);
   const [scanProgress, setScanProgress] = useState({ current: 0, total: 0 });
   const [currentDocName, setCurrentDocName] = useState('');
+  const [showSplash, setShowSplash] = useState(true);
 
   // Apply theme
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', isDark ? 'dark' : 'light');
   }, [isDark]);
+
+  // Splash screen timer
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setShowSplash(false);
+    }, 1500);
+    return () => clearTimeout(timer);
+  }, []);
 
   const updateDoc = (id, patch) => setDocs(p => p.map(d => d.id === id ? { ...d, ...patch } : d));
 
@@ -206,6 +215,53 @@ export default function App() {
     </button>
   );
 
+  // ── SPLASH SCREEN ──
+  if (showSplash) {
+    return (
+      <div style={{
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        width: '100vw',
+        height: '100vh',
+        background: 'var(--bg)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        zIndex: 9999,
+        animation: 'fadeOut 0.5s ease 1s forwards'
+      }}>
+        <div style={{
+          animation: 'logoFloat 1.5s ease-in-out infinite, logoFade 1.5s ease-in-out'
+        }}>
+          <img
+            src="/logo.svg"
+            alt="RegulAI Sentinel"
+            style={{
+              width: '200px',
+              height: 'auto',
+              filter: 'drop-shadow(0 10px 30px rgba(15, 98, 254, 0.3))'
+            }}
+          />
+        </div>
+        <style>{`
+          @keyframes logoFloat {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-10px); }
+          }
+          @keyframes logoFade {
+            0% { opacity: 0; transform: scale(0.9); }
+            50% { opacity: 1; transform: scale(1); }
+            100% { opacity: 1; transform: scale(1); }
+          }
+          @keyframes fadeOut {
+            to { opacity: 0; pointer-events: none; }
+          }
+        `}</style>
+      </div>
+    );
+  }
+
   // ── LOADING VIEW ──
   if (view === 'loading') {
     return (
@@ -213,8 +269,8 @@ export default function App() {
         <div style={{ maxWidth: 680, width: '100%' }}>
           <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 4, padding: 40, boxShadow: 'var(--shadow-card)' }}>
             <div style={{ textAlign: 'center', marginBottom: 36 }}>
-              <div style={{ width: 56, height: 56, borderRadius: 4, margin: '0 auto 18px', background: 'linear-gradient(135deg, var(--accent) 0%, #3b82f6 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 6px 24px var(--accent-glow)' }}>
-                <FiShield size={26} color="#fff" />
+              <div style={{ width: 56, height: 56, borderRadius: 4, margin: '0 auto 18px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <img src="/logo.svg" alt="RegulAI Sentinel" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
               </div>
               <h2 style={{ margin: '0 0 8px', fontSize: 26, fontWeight: 800, color: 'var(--text-primary)' }}>Running Compliance Analysis</h2>
               <p style={{ margin: 0, color: 'var(--text-secondary)', fontSize: 15 }}>
@@ -235,8 +291,8 @@ export default function App() {
         {/* Sticky topbar */}
         <div style={{ position: 'sticky', top: 0, zIndex: 50, background: 'var(--surface)', borderBottom: '1px solid var(--border)', backdropFilter: 'blur(12px)', padding: '12px 24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <div style={{ width: 32, height: 32, borderRadius: 4, background: 'linear-gradient(135deg,var(--accent),#3b82f6)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <FiShield size={15} color="#fff" />
+            <div style={{ width: 32, height: 32, borderRadius: 4, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <img src="/logo.svg" alt="RegulAI Sentinel" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
             </div>
             <span style={{ fontWeight: 800, fontSize: 16, color: 'var(--text-primary)' }}>RegulAI Sentinel</span>
             <span style={{ fontSize: 12, color: 'var(--text-muted)', padding: '2px 7px', background: 'var(--accent-subtle)', border: '1px solid var(--border)', borderRadius: 3 }}>Report</span>
@@ -257,8 +313,8 @@ export default function App() {
       {/* Navbar */}
       <nav style={{ padding: '16px 32px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid var(--border)', background: 'var(--surface)', position: 'sticky', top: 0, zIndex: 40, backdropFilter: 'blur(12px)' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <div style={{ width: 34, height: 34, borderRadius: 4, background: 'linear-gradient(135deg,var(--accent),#3b82f6)', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 3px 12px var(--accent-glow)' }}>
-            <FiShield size={16} color="#fff" />
+          <div style={{ width: 34, height: 34, borderRadius: 4, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <img src="/logo.svg" alt="RegulAI Sentinel" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
           </div>
           <span style={{ fontWeight: 800, fontSize: 17, color: 'var(--text-primary)' }}>RegulAI Sentinel</span>
           <span style={{ fontSize: 11, color: 'var(--accent)', fontWeight: 600, padding: '2px 7px', background: 'var(--accent-subtle)', borderRadius: 3, border: '1px solid var(--border)' }}>BETA</span>
