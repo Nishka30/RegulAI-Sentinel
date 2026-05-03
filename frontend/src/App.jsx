@@ -1,485 +1,389 @@
-import { useState } from 'react';
-import ViolationCard from './components/ViolationCard';
+import { useState, useEffect } from 'react';
+import { FiSearch, FiBarChart2, FiShield, FiSun, FiMoon, FiPlus } from 'react-icons/fi';
 import StepProgress from './components/StepProgress';
-import RemediationPanel from './components/RemediationPanel';
+import DocumentTab from './components/DocumentTab';
+import MultiDocResults from './components/MultiDocResults';
 import './index.css';
 
-function App() {
-  const [view, setView] = useState('home');
-  const [tab, setTab] = useState('scan');
-  const [documentText, setDocumentText] = useState('');
-  const [results, setResults] = useState(null);
-  const [patterns, setPatterns] = useState(null);
-  const [loadingPatterns, setLoadingPatterns] = useState(false);
+const newDoc = (num) => ({
+  id: Date.now() + Math.random(),
+  name: `Document ${num}`,
+  mode: 'text', text: '',
+  pdfFile: null, pdfUrl: null, pdfFileName: '',
+  extracting: false, extracted: false,
+});
 
-  const handleScan = async () => {
-    if (!documentText.trim()) {
-      alert('Please enter document text');
-      return;
-    }
+// ── Patterns tab (separate to keep App lean) ──
+function PatternsTab() {
+  const [loading, setLoading] = useState(false);
+  const [data, setData] = useState(null);
 
-    setView('loading');
-
+  const load = async () => {
+    setLoading(true);
     try {
-      const response = await fetch(`${import.meta.env.VITE_API_URL}/scan`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ text: documentText }),
-      });
-
-      if (!response.ok) {
-        throw new Error('Scan failed');
-      }
-
-      const data = await response.json();
-      setResults(data);
-      
-      setTimeout(() => {
-        setView('results');
-      }, 12000);
-    } catch (error) {
-      console.error('Error:', error);
-      alert('Failed to scan document. Please try again.');
-      setView('home');
-    }
+      const r = await fetch(`${import.meta.env.VITE_API_URL}/patterns`);
+      if (!r.ok) throw new Error();
+      setData(await r.json());
+    } catch { alert('Failed to load patterns.'); }
+    finally { setLoading(false); }
   };
 
-  const handleAnalyzePatterns = async () => {
-    setLoadingPatterns(true);
-    try {
-      const response = await fetch(`${import.meta.env.VITE_API_URL}/patterns`);
-      if (!response.ok) {
-        throw new Error('Failed to fetch patterns');
-      }
-      const data = await response.json();
-      setPatterns(data);
-    } catch (error) {
-      console.error('Error:', error);
-      alert('Failed to analyze patterns. Please try again.');
-    } finally {
-      setLoadingPatterns(false);
-    }
-  };
-
-  const handleReset = () => {
-    setView('home');
-    setDocumentText('');
-    setResults(null);
-  };
-
-  const getHighestSeverity = () => {
-    if (!results?.violations?.length) return 'NONE';
-    const severities = results.violations.map(v => v.severity);
-    if (severities.includes('HIGH')) return 'HIGH';
-    if (severities.includes('MEDIUM')) return 'MEDIUM';
-    return 'LOW';
-  };
+  const C = { background: 'var(--card)', border: '1px solid var(--border)', borderRadius: 4, padding: 24, boxShadow: 'var(--shadow-card)', marginBottom: 16 };
 
   return (
-    <div className="min-h-screen bg-navy">
-      {view === 'home' && (
-        <div className="min-h-screen px-4 py-8">
-          <div className="max-w-6xl mx-auto">
-            <div className="text-center mb-8">
-              <div className="flex items-center justify-center gap-4 mb-6">
-                <div className="w-16 h-16 bg-gradient-to-br from-ibm-blue to-blue-600 rounded-2xl flex items-center justify-center shadow-lg shadow-ibm-blue/50">
-                  <svg className="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
-                  </svg>
-                </div>
-                <h1 className="text-6xl font-bold bg-gradient-to-r from-white to-gray-300 bg-clip-text text-transparent">
-                  RegulAI Sentinel
-                </h1>
-              </div>
-              <p className="text-2xl font-semibold text-ibm-blue">
-                AI-Powered Compliance Review
-              </p>
-            </div>
+    <div>
+      <div style={C}>
+        <h2 style={{ margin: '0 0 6px', fontSize: 20, fontWeight: 800, color: 'var(--text-primary)' }}>Historical Pattern Analysis</h2>
+        <p style={{ margin: '0 0 20px', color: 'var(--text-secondary)', fontSize: 14 }}>Analyze compliance violations across all historical audits</p>
+        <button className="accent-btn" onClick={load} disabled={loading} style={{ width: '100%', padding: '13px 24px', fontSize: 14, borderRadius: 4, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+          <FiSearch size={16} />
+          {loading ? 'Analyzing…' : 'Analyze Patterns'}
+        </button>
+      </div>
 
-            <div className="flex gap-4 mb-8 justify-center">
-              <button
-                onClick={() => setTab('scan')}
-                className={`px-6 py-3 rounded-xl font-semibold transition-all ${
-                  tab === 'scan'
-                    ? 'bg-ibm-blue text-white shadow-lg shadow-ibm-blue/50'
-                    : 'bg-gray-800 text-gray-400 hover:bg-gray-700'
-                }`}
-              >
-                Scan Document
-              </button>
-              <button
-                onClick={() => setTab('patterns')}
-                className={`px-6 py-3 rounded-xl font-semibold transition-all ${
-                  tab === 'patterns'
-                    ? 'bg-ibm-blue text-white shadow-lg shadow-ibm-blue/50'
-                    : 'bg-gray-800 text-gray-400 hover:bg-gray-700'
-                }`}
-              >
-                Patterns
-              </button>
-            </div>
-
-            {tab === 'scan' && (
-              <div className="bg-gradient-to-br from-gray-800 to-gray-900 rounded-2xl p-8 border border-gray-700 shadow-2xl">
-                <label className="block text-white font-semibold mb-4 text-lg">
-                  Document Text
-                </label>
-                <textarea
-                  value={documentText}
-                  onChange={(e) => setDocumentText(e.target.value)}
-                  placeholder="Paste your document text here for compliance analysis..."
-                  className="w-full min-h-48 bg-slate-800 text-white border-2 border-gray-700 rounded-xl p-4 focus:outline-none focus:border-ibm-blue transition-colors resize-none placeholder-gray-500"
-                />
-                
-                <button
-                  onClick={handleScan}
-                  className="mt-6 w-full bg-gradient-to-r from-ibm-blue to-blue-700 hover:shadow-lg hover:shadow-ibm-blue/50 text-white font-bold py-4 px-8 rounded-xl transition-all text-lg transform hover:scale-[1.02]"
-                >
-                  Scan Document
-                </button>
-              </div>
-            )}
-
-            {tab === 'patterns' && (
-              <div className="space-y-6">
-                <div className="bg-gradient-to-br from-gray-800 to-gray-900 rounded-2xl p-8 border border-gray-700 shadow-2xl">
-                  <h2 className="text-2xl font-bold text-white mb-4">Historical Pattern Analysis</h2>
-                  <p className="text-gray-400 mb-6">Analyze compliance violations across all historical audits</p>
-                  
-                  <button
-                    onClick={handleAnalyzePatterns}
-                    disabled={loadingPatterns}
-                    className="w-full bg-gradient-to-r from-ibm-blue to-blue-700 hover:shadow-lg hover:shadow-ibm-blue/50 text-white font-bold py-4 px-8 rounded-xl transition-all text-lg transform hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    {loadingPatterns ? 'Analyzing...' : 'Analyze Patterns'}
-                  </button>
-                </div>
-
-                {loadingPatterns && (
-                  <div className="bg-gradient-to-br from-gray-800 to-gray-900 rounded-2xl p-12 border border-gray-700 shadow-2xl">
-                    <div className="flex items-center justify-center">
-                      <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-ibm-blue"></div>
-                    </div>
-                  </div>
-                )}
-
-                {patterns && !loadingPatterns && (
-                  <div className="space-y-6">
-                    <div className="flex justify-between items-start mb-6">
-                      <div className="grid grid-cols-4 gap-6 flex-1">
-                        <div className="bg-gradient-to-br from-gray-800 to-gray-900 rounded-2xl p-6 border border-gray-700 shadow-xl">
-                          <p className="text-gray-400 text-sm mb-2">Total Documents</p>
-                          <p className="text-4xl font-bold text-white">{patterns.total_documents_analyzed}</p>
-                        </div>
-                        <div className="bg-gradient-to-br from-gray-800 to-gray-900 rounded-2xl p-6 border border-gray-700 shadow-xl">
-                          <p className="text-gray-400 text-sm mb-2">Total Violations</p>
-                          <p className="text-4xl font-bold text-white">{patterns.total_violations}</p>
-                        </div>
-                        <div className="bg-gradient-to-br from-gray-800 to-gray-900 rounded-2xl p-6 border border-gray-700 shadow-xl">
-                          <p className="text-gray-400 text-sm mb-2">HIGH Severity</p>
-                          <p className="text-4xl font-bold text-red-500">{patterns.severity_breakdown?.HIGH || 0}</p>
-                        </div>
-                        <div className="bg-gradient-to-br from-gray-800 to-gray-900 rounded-2xl p-6 border border-gray-700 shadow-xl">
-                          <p className="text-gray-400 text-sm mb-2">Riskiest Clause</p>
-                          <p className="text-lg font-bold text-ibm-blue truncate">{patterns.riskiest_clause || 'N/A'}</p>
-                        </div>
-                      </div>
-                      <div className={`ml-4 px-4 py-2 rounded-lg font-semibold ${
-                        patterns.trend === 'increasing' ? 'bg-red-900/30 text-red-400 border border-red-700' :
-                        patterns.trend === 'decreasing' ? 'bg-green-900/30 text-green-400 border border-green-700' :
-                        'bg-gray-700 text-gray-300 border border-gray-600'
-                      }`}>
-                        {patterns.trend === 'increasing' ? '⬆ Increasing' :
-                         patterns.trend === 'decreasing' ? '⬇ Decreasing' :
-                         '➡ Stable'}
-                      </div>
-                    </div>
-
-                    <div className="bg-gradient-to-br from-gray-800 to-gray-900 rounded-2xl p-8 border border-gray-700 shadow-xl">
-                      <h3 className="text-2xl font-bold text-white mb-6">Top Violations</h3>
-                      <div className="space-y-6">
-                        {patterns.top_violations?.map((violation, index) => (
-                          <div key={index} className="bg-gray-800/50 rounded-xl p-5 border border-gray-700">
-                            <div className="flex justify-between items-center mb-3">
-                              <span className="text-ibm-blue font-mono text-sm bg-ibm-blue/10 px-3 py-1 rounded-lg">
-                                {violation.clause_id}
-                              </span>
-                              <span className="bg-amber-600 text-white px-3 py-1 rounded-full text-xs font-bold">
-                                Risk: {violation.avg_risk_score}
-                              </span>
-                            </div>
-                            <p className="text-gray-400 text-sm mb-3 leading-relaxed">{violation.clause_description}</p>
-                            <div className="w-full bg-gray-700 rounded-full h-3 overflow-hidden mb-2">
-                              <div
-                                className="bg-gradient-to-r from-ibm-blue to-blue-600 h-full rounded-full transition-all"
-                                style={{ width: `${(violation.count / patterns.total_violations) * 100}%` }}
-                              ></div>
-                            </div>
-                            <p className="text-gray-500 text-xs">
-                              Affected docs: {violation.affected_docs?.length || 0} | Last seen: {new Date(violation.last_seen * 1000).toLocaleDateString()}
-                            </p>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-
-                    <div className="bg-gradient-to-br from-ibm-blue/20 to-blue-900/20 rounded-2xl p-8 border-2 border-ibm-blue/50 shadow-xl">
-                      <h3 className="text-xl font-bold text-ibm-blue mb-4 flex items-center gap-2">
-                        <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
-                          <path fillRule="evenodd" d="M6.267 3.455a3.066 3.066 0 001.745-.723 3.066 3.066 0 013.976 0 3.066 3.066 0 001.745.723 3.066 3.066 0 012.812 2.812c.051.643.304 1.254.723 1.745a3.066 3.066 0 010 3.976 3.066 3.066 0 00-.723 1.745 3.066 3.066 0 01-2.812 2.812 3.066 3.066 0 00-1.745.723 3.066 3.066 0 01-3.976 0 3.066 3.066 0 00-1.745-.723 3.066 3.066 0 01-2.812-2.812 3.066 3.066 0 00-.723-1.745 3.066 3.066 0 010-3.976 3.066 3.066 0 00.723-1.745 3.066 3.066 0 012.812-2.812zm7.44 5.252a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                        </svg>
-                        AI Summary
-                      </h3>
-                      <p className="text-gray-200 leading-relaxed">{patterns.ai_summary}</p>
-                    </div>
-
-                    <div className="bg-gradient-to-br from-gray-800 to-gray-900 rounded-2xl p-8 border border-gray-700 shadow-xl">
-                      <h3 className="text-2xl font-bold text-white mb-6">Repeat Offenders</h3>
-                      <div className="overflow-x-auto">
-                        <table className="w-full">
-                          <thead className="bg-gray-900/80">
-                            <tr>
-                              <th className="px-6 py-3 text-left text-xs font-bold text-gray-400 uppercase">Document ID</th>
-                              <th className="px-6 py-3 text-left text-xs font-bold text-gray-400 uppercase">Violations</th>
-                              <th className="px-6 py-3 text-left text-xs font-bold text-gray-400 uppercase">Type</th>
-                            </tr>
-                          </thead>
-                          <tbody className="divide-y divide-gray-700">
-                            {patterns.repeat_offenders?.map((offender, index) => (
-                              <tr key={index} className="hover:bg-gray-700/50 transition-colors">
-                                <td className="px-6 py-4 text-sm font-mono text-gray-300">
-                                  {offender.doc_id.substring(0, 8)}...
-                                </td>
-                                <td className="px-6 py-4">
-                                  <span className="bg-red-600 text-white px-3 py-1 rounded-full text-xs font-bold">
-                                    {offender.violation_count}
-                                  </span>
-                                </td>
-                                <td className="px-6 py-4">
-                                  <span className="bg-ibm-blue/20 text-ibm-blue px-3 py-1 rounded-full text-xs font-semibold">
-                                    {offender.doc_type}
-                                  </span>
-                                </td>
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
-                      </div>
-                    </div>
-
-                    <div className="grid grid-cols-3 gap-6">
-                      <div className="bg-gradient-to-br from-red-900/30 to-red-800/20 rounded-2xl p-6 border-2 border-red-700/50 shadow-xl">
-                        <p className="text-red-400 text-sm font-semibold mb-2">HIGH Severity</p>
-                        <p className="text-4xl font-bold text-red-500">{patterns.severity_breakdown?.HIGH || 0}</p>
-                      </div>
-                      <div className="bg-gradient-to-br from-amber-900/30 to-amber-800/20 rounded-2xl p-6 border-2 border-amber-700/50 shadow-xl">
-                        <p className="text-amber-400 text-sm font-semibold mb-2">MEDIUM Severity</p>
-                        <p className="text-4xl font-bold text-amber-500">{patterns.severity_breakdown?.MEDIUM || 0}</p>
-                      </div>
-                      <div className="bg-gradient-to-br from-green-900/30 to-green-800/20 rounded-2xl p-6 border-2 border-green-700/50 shadow-xl">
-                        <p className="text-green-400 text-sm font-semibold mb-2">LOW Severity</p>
-                        <p className="text-4xl font-bold text-green-500">{patterns.severity_breakdown?.LOW || 0}</p>
-                      </div>
-                    </div>
-
-                    <div className="text-center text-gray-500 text-sm">
-                      Analyzed at: {new Date(patterns.analyzed_at * 1000).toLocaleString()}
-                    </div>
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
+      {loading && (
+        <div style={{ ...C, display: 'flex', justifyContent: 'center', alignItems: 'center', padding: 48 }}>
+          <div style={{ width: 40, height: 40, borderRadius: '50%', border: '3px solid var(--border)', borderTopColor: 'var(--accent)', animation: 'spin-slow 0.8s linear infinite' }}/>
         </div>
       )}
 
-      {view === 'loading' && (
-        <div className="min-h-screen flex items-center justify-center px-4">
-          <div className="max-w-6xl w-full">
-            <div className="bg-gradient-to-br from-gray-800 to-gray-900 rounded-2xl p-12 border border-gray-700 shadow-2xl">
-              <h2 className="text-3xl font-bold text-white mb-12 text-center">Processing Document...</h2>
-              <StepProgress />
-            </div>
+      {data && !loading && (
+        <div>
+          {/* Stats */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 16, marginBottom: 20 }}>
+            {[
+              { label: 'Documents', val: data.total_documents_analyzed, color: 'var(--text-primary)' },
+              { label: 'Total Violations', val: data.total_violations, color: 'var(--text-primary)' },
+              { label: 'HIGH Severity', val: data.severity_breakdown?.HIGH || 0, color: 'var(--red)' },
+              { label: 'Riskiest Clause', val: data.riskiest_clause || 'N/A', color: 'var(--accent)', small: true },
+            ].map(({ label, val, color, small }) => (
+              <div key={label} style={C}>
+                <p style={{ margin: '0 0 8px', fontSize: 11, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.7px', fontWeight: 600 }}>{label}</p>
+                <p style={{ margin: 0, fontSize: small ? 18 : 36, fontWeight: 800, color, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{val}</p>
+              </div>
+            ))}
           </div>
-        </div>
-      )}
 
-      {view === 'results' && results && (
-        <div className="min-h-screen px-4 py-8">
-          <div className="max-w-7xl mx-auto">
-            <div className="flex justify-between items-center mb-8">
-              <h1 className="text-4xl font-bold text-white">Compliance Report</h1>
-              <button
-                onClick={handleReset}
-                className="bg-gradient-to-r from-gray-700 to-gray-800 hover:from-gray-600 hover:to-gray-700 text-white font-semibold py-3 px-6 rounded-xl transition-all shadow-lg"
-              >
-                New Scan
-              </button>
-            </div>
-
-            <div className="bg-gradient-to-br from-gray-800 to-gray-900 rounded-2xl p-8 border border-gray-700 mb-8 shadow-xl">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-gray-400 text-sm mb-2">Violations Found</p>
-                  <p className="text-5xl font-bold text-white">
-                    {results.violations?.length || 0}
-                    <span className={`ml-4 text-2xl ${
-                      getHighestSeverity() === 'HIGH' ? 'text-red-500' :
-                      getHighestSeverity() === 'MEDIUM' ? 'text-amber-500' :
-                      'text-green-500'
-                    }`}>
-                      {getHighestSeverity()}
-                    </span>
-                  </p>
-                </div>
-                <div className="text-right">
-                  <p className="text-gray-400 text-sm mb-2">Audit ID</p>
-                  <p className="text-sm font-mono text-ibm-blue bg-ibm-blue/10 px-4 py-2 rounded-lg">
-                    {results.audit_id}
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            <div className="mb-8">
-              <h2 className="text-3xl font-bold text-white mb-6 flex items-center gap-3">
-                <span className="w-2 h-8 bg-ibm-blue rounded-full"></span>
-                Violations
-              </h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {results.violations?.map((violation, index) => (
-                  <div
-                    key={index}
-                    className={`bg-gradient-to-br from-gray-800 to-gray-900 rounded-xl p-6 border-l-4 ${
-                      violation.severity === 'HIGH' ? 'border-red-500' :
-                      violation.severity === 'MEDIUM' ? 'border-amber-500' :
-                      'border-green-500'
-                    } shadow-lg hover:shadow-xl transition-shadow`}
-                  >
-                    <div className="flex items-start justify-between mb-4">
-                      <span className={`${
-                        violation.severity === 'HIGH' ? 'bg-red-600' :
-                        violation.severity === 'MEDIUM' ? 'bg-amber-500' :
-                        'bg-green-600'
-                      } text-white px-3 py-1 rounded-full text-xs font-bold uppercase`}>
-                        {violation.severity}
-                      </span>
-                      <span className="text-ibm-blue text-sm font-mono bg-ibm-blue/10 px-3 py-1 rounded-lg">
-                        {violation.clause_id}
-                      </span>
-                    </div>
-                    
-                    {violation.section && (
-                      <div className="mb-3">
-                        <h3 className="text-gray-400 text-xs uppercase font-semibold mb-1">Section</h3>
-                        <p className="text-gray-300 text-sm">{violation.section}</p>
-                      </div>
-                    )}
-                    
-                    <div>
-                      <h3 className="text-gray-400 text-xs uppercase font-semibold mb-1">Explanation</h3>
-                      <p className="text-gray-200 text-sm leading-relaxed">{violation.explanation}</p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            <div className="mb-8">
-              <h2 className="text-3xl font-bold text-white mb-6 flex items-center gap-3">
-                <span className="w-2 h-8 bg-ibm-blue rounded-full"></span>
-                Risk Assessment
-              </h2>
-              <div className="bg-gradient-to-br from-gray-800 to-gray-900 rounded-2xl border border-gray-700 overflow-hidden shadow-xl">
-                <table className="w-full">
-                  <thead className="bg-gray-900/80">
-                    <tr>
-                      <th className="px-6 py-4 text-left text-xs font-bold text-gray-400 uppercase tracking-wider">Clause ID</th>
-                      <th className="px-6 py-4 text-left text-xs font-bold text-gray-400 uppercase tracking-wider">Severity</th>
-                      <th className="px-6 py-4 text-left text-xs font-bold text-gray-400 uppercase tracking-wider">Risk Score</th>
-                      <th className="px-6 py-4 text-left text-xs font-bold text-gray-400 uppercase tracking-wider">Priority</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-700">
-                    {results.scored_violations?.map((scored, index) => (
-                      <tr key={index} className={`${index % 2 === 0 ? 'bg-gray-800/50' : 'bg-gray-900/30'} hover:bg-gray-700/50 transition-colors`}>
-                        <td className="px-6 py-4 text-sm font-mono text-ibm-blue">{scored.clause_id}</td>
-                        <td className="px-6 py-4">
-                          <span className={`${
-                            scored.severity === 'HIGH' ? 'bg-red-600' :
-                            scored.severity === 'MEDIUM' ? 'bg-amber-500' :
-                            'bg-green-600'
-                          } text-white px-2 py-1 rounded text-xs font-bold`}>
-                            {scored.severity}
-                          </span>
-                        </td>
-                        <td className="px-6 py-4 text-sm font-bold text-white">{scored.risk_score}</td>
-                        <td className="px-6 py-4">
-                          <span className="bg-ibm-blue text-white px-3 py-1 rounded-full text-xs font-bold">
-                            {scored.priority}
-                          </span>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-
-            {results.remediations && results.remediations.length > 0 && (
-              <div className="mb-8">
-                <h2 className="text-3xl font-bold text-white mb-6 flex items-center gap-3">
-                  <span className="w-2 h-8 bg-ibm-blue rounded-full"></span>
-                  Remediations
-                </h2>
-                <div className="space-y-6">
-                  {results.remediations.map((remediation, index) => (
-                    <div key={index} className="bg-gradient-to-br from-gray-800 to-gray-900 rounded-2xl border border-gray-700 overflow-hidden shadow-xl">
-                      <div className="bg-gray-900/80 px-6 py-3 border-b border-gray-700">
-                        <span className="text-ibm-blue font-mono text-sm font-semibold">{remediation.clause_id}</span>
-                      </div>
-                      
-                      <div className="grid grid-cols-2 gap-6 p-6">
-                        <div className="bg-red-900/20 border-2 border-red-900/50 rounded-xl p-5">
-                          <h3 className="text-red-400 font-bold mb-3 text-sm uppercase flex items-center gap-2">
-                            <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                              <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
-                            </svg>
-                            Original
-                          </h3>
-                          <p className="text-gray-300 text-sm leading-relaxed">{remediation.original}</p>
-                        </div>
-                        
-                        <div className="bg-green-900/20 border-2 border-green-900/50 rounded-xl p-5">
-                          <h3 className="text-green-400 font-bold mb-3 text-sm uppercase flex items-center gap-2">
-                            <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                              <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                            </svg>
-                            Rewrite
-                          </h3>
-                          <p className="text-gray-300 text-sm leading-relaxed">{remediation.rewrite}</p>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            <div className="text-center py-6 border-t border-gray-800">
-              <p className="text-gray-500 text-sm">
-                Audit Timestamp: {new Date(results.timestamp * 1000).toLocaleString()}
-              </p>
-            </div>
+          {/* Trend */}
+          <div style={{ marginBottom: 20, display: 'flex', justifyContent: 'flex-end' }}>
+            <span style={{
+              padding: '5px 14px', borderRadius: 4, fontWeight: 700, fontSize: 13,
+              background: data.trend === 'increasing' ? 'var(--red-bg)' : data.trend === 'decreasing' ? 'var(--green-bg)' : 'var(--surface2)',
+              color: data.trend === 'increasing' ? 'var(--red)' : data.trend === 'decreasing' ? 'var(--green)' : 'var(--text-secondary)',
+              border: `1px solid ${data.trend === 'increasing' ? 'var(--red-border)' : data.trend === 'decreasing' ? 'var(--green-border)' : 'var(--border)'}`,
+            }}>
+              {data.trend === 'increasing' ? 'Increasing' : data.trend === 'decreasing' ? 'Decreasing' : 'Stable'}
+            </span>
           </div>
+
+          {/* Top violations */}
+          <div style={C}>
+            <h3 style={{ margin: '0 0 18px', fontSize: 17, fontWeight: 700, color: 'var(--text-primary)' }}>Top Violations</h3>
+            {data.top_violations?.map((v, i) => (
+              <div key={i} style={{ padding: '16px 0', borderBottom: i < data.top_violations.length - 1 ? '1px solid var(--border)' : 'none' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                  <code style={{ fontSize: 12, color: 'var(--accent)', background: 'var(--accent-subtle)', padding: '3px 10px', borderRadius: 8 }}>{v.clause_id}</code>
+                  <span style={{ fontSize: 11, fontWeight: 700, background: 'var(--amber-bg)', color: 'var(--amber)', border: '1px solid var(--amber-border)', padding: '3px 10px', borderRadius: 99 }}>Risk: {v.avg_risk_score}</span>
+                </div>
+                <p style={{ margin: '0 0 8px', fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.5 }}>{v.clause_description}</p>
+                <div style={{ height: 5, background: 'var(--border)', borderRadius: 99, overflow: 'hidden', marginBottom: 4 }}>
+                  <div style={{ width: `${(v.count / data.total_violations) * 100}%`, height: '100%', background: 'var(--accent)', borderRadius: 99 }}/>
+                </div>
+                <p style={{ margin: 0, fontSize: 11, color: 'var(--text-muted)' }}>Affected: {v.affected_docs?.length || 0} · Last seen: {new Date(v.last_seen * 1000).toLocaleDateString()}</p>
+              </div>
+            ))}
+          </div>
+
+          {/* AI Summary */}
+          <div style={{ ...C, background: 'var(--accent-subtle)', border: '1.5px solid var(--accent)', borderRadius: 20 }}>
+            <h3 style={{ margin: '0 0 10px', fontSize: 15, fontWeight: 700, color: 'var(--accent)' }}>✦ AI Summary</h3>
+            <p style={{ margin: 0, color: 'var(--text-primary)', lineHeight: 1.7, fontSize: 14 }}>{data.ai_summary}</p>
+          </div>
+
+          {/* Severity breakdown */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 16, marginBottom: 20 }}>
+            {[
+              { label: 'HIGH', val: data.severity_breakdown?.HIGH || 0, c: 'var(--red)', bg: 'var(--red-bg)', bd: 'var(--red-border)' },
+              { label: 'MEDIUM', val: data.severity_breakdown?.MEDIUM || 0, c: 'var(--amber)', bg: 'var(--amber-bg)', bd: 'var(--amber-border)' },
+              { label: 'LOW', val: data.severity_breakdown?.LOW || 0, c: 'var(--green)', bg: 'var(--green-bg)', bd: 'var(--green-border)' },
+            ].map(({ label, val, c, bg, bd }) => (
+              <div key={label} style={{ background: bg, border: `1.5px solid ${bd}`, borderRadius: 18, padding: 24 }}>
+                <p style={{ margin: '0 0 6px', fontSize: 11, fontWeight: 700, color: c, textTransform: 'uppercase', letterSpacing: '0.8px' }}>{label} Severity</p>
+                <p style={{ margin: 0, fontSize: 40, fontWeight: 900, color: c }}>{val}</p>
+              </div>
+            ))}
+          </div>
+
+          <p style={{ textAlign: 'center', color: 'var(--text-muted)', fontSize: 12 }}>
+            Analyzed at: {new Date(data.analyzed_at * 1000).toLocaleString()}
+          </p>
         </div>
       )}
     </div>
   );
 }
 
-export default App;
+// ── Main App ──
+export default function App() {
+  const [isDark, setIsDark] = useState(true);
+  const [view, setView]     = useState('home');
+  const [tab, setTab]       = useState('scan');
+  const [docs, setDocs]     = useState(() => [newDoc(1)]);
+  const [activeId, setActiveId]   = useState(docs[0].id);
+  const [results, setResults]     = useState(null);
+  const [scanProgress, setScanProgress] = useState({ current: 0, total: 0 });
+  const [currentDocName, setCurrentDocName] = useState('');
+
+  // Apply theme
+  useEffect(() => {
+    document.documentElement.setAttribute('data-theme', isDark ? 'dark' : 'light');
+  }, [isDark]);
+
+  const updateDoc = (id, patch) => setDocs(p => p.map(d => d.id === id ? { ...d, ...patch } : d));
+
+  const addDoc = () => {
+    if (docs.length >= 10) return;
+    setDocs(prev => {
+      const d = newDoc(prev.length + 1);
+      setActiveId(d.id);
+      return [...prev, d];
+    });
+  };
+
+  const deleteDoc = (id) => {
+    setDocs(prev => {
+      const next = prev.filter(d => d.id !== id);
+      if (next.length === 0) return prev;
+      if (id === activeId) setActiveId(next[0].id);
+      return next;
+    });
+  };
+
+  const handleScanAll = async () => {
+    const valid = docs.filter(d => d.text.trim());
+    if (!valid.length) { alert('Add content to at least one document.'); return; }
+    setView('loading');
+    setScanProgress({ current: 0, total: valid.length });
+    const allResults = [];
+    for (let i = 0; i < valid.length; i++) {
+      setScanProgress({ current: i + 1, total: valid.length });
+      setCurrentDocName(valid[i].name);
+      try {
+        const resp = await fetch(`${import.meta.env.VITE_API_URL}/scan`, {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ text: valid[i].text }),
+        });
+        if (!resp.ok) throw new Error();
+        allResults.push(await resp.json());
+      } catch { allResults.push(null); }
+    }
+    setResults({ data: allResults, names: valid.map(d => d.name) });
+    setTimeout(() => setView('results'), 12000);
+  };
+
+  const handleReset = () => {
+    const d = newDoc(1);
+    setDocs([d]);
+    setActiveId(d.id);
+    setResults(null); setView('home'); setTab('scan');
+  };
+
+  const readyCount = docs.filter(d => d.text.trim()).length;
+  const activeDoc  = docs.find(d => d.id === activeId) || docs[0];
+
+  // ── Theme toggle button ──
+  const ThemeToggle = () => (
+    <button onClick={() => setIsDark(v => !v)} style={{
+      display: 'flex', alignItems: 'center', gap: 7, padding: '7px 13px',
+      background: 'var(--surface2)', border: '1px solid var(--border)', borderRadius: 4,
+      cursor: 'pointer', color: 'var(--text-secondary)', fontSize: 13, fontWeight: 600,
+      transition: 'all 0.2s ease', fontFamily: 'inherit',
+    }}
+      onMouseOver={e => e.currentTarget.style.background = 'var(--card-hover)'}
+      onMouseOut={e  => e.currentTarget.style.background = 'var(--surface2)'}
+    >
+      {isDark ? <><FiSun size={13} /> Light</> : <><FiMoon size={13} /> Dark</>}
+    </button>
+  );
+
+  // ── LOADING VIEW ──
+  if (view === 'loading') {
+    return (
+      <div style={{ minHeight: '100vh', background: 'var(--bg)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }}>
+        <div style={{ maxWidth: 680, width: '100%' }}>
+          <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 4, padding: 40, boxShadow: 'var(--shadow-card)' }}>
+            <div style={{ textAlign: 'center', marginBottom: 36 }}>
+              <div style={{ width: 56, height: 56, borderRadius: 4, margin: '0 auto 18px', background: 'linear-gradient(135deg, var(--accent) 0%, #3b82f6 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 6px 24px var(--accent-glow)' }}>
+                <FiShield size={26} color="#fff" />
+              </div>
+              <h2 style={{ margin: '0 0 8px', fontSize: 26, fontWeight: 800, color: 'var(--text-primary)' }}>Running Compliance Analysis</h2>
+              <p style={{ margin: 0, color: 'var(--text-secondary)', fontSize: 15 }}>
+                Our AI pipeline is reviewing your document{scanProgress.total > 1 ? 's' : ''} against regulatory frameworks
+              </p>
+            </div>
+            <StepProgress currentDoc={scanProgress.current} totalDocs={scanProgress.total} docName={currentDocName} />
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // ── RESULTS VIEW ──
+  if (view === 'results' && results) {
+    return (
+      <div style={{ minHeight: '100vh', background: 'var(--bg)' }}>
+        {/* Sticky topbar */}
+        <div style={{ position: 'sticky', top: 0, zIndex: 50, background: 'var(--surface)', borderBottom: '1px solid var(--border)', backdropFilter: 'blur(12px)', padding: '12px 24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <div style={{ width: 32, height: 32, borderRadius: 4, background: 'linear-gradient(135deg,var(--accent),#3b82f6)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <FiShield size={15} color="#fff" />
+            </div>
+            <span style={{ fontWeight: 800, fontSize: 16, color: 'var(--text-primary)' }}>RegulAI Sentinel</span>
+            <span style={{ fontSize: 12, color: 'var(--text-muted)', padding: '2px 7px', background: 'var(--accent-subtle)', border: '1px solid var(--border)', borderRadius: 3 }}>Report</span>
+          </div>
+          <div style={{ display: 'flex', gap: 10 }}>
+            <ThemeToggle />
+            <button className="ghost-btn" onClick={handleReset} style={{ padding: '8px 18px', fontSize: 13 }}>← New Scan</button>
+          </div>
+        </div>
+        <MultiDocResults allResults={results.data} docNames={results.names} onReset={handleReset} />
+      </div>
+    );
+  }
+
+  // ── HOME VIEW ──
+  return (
+    <div style={{ minHeight: '100vh', background: 'var(--bg)' }}>
+      {/* Navbar */}
+      <nav style={{ padding: '16px 32px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid var(--border)', background: 'var(--surface)', position: 'sticky', top: 0, zIndex: 40, backdropFilter: 'blur(12px)' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <div style={{ width: 34, height: 34, borderRadius: 4, background: 'linear-gradient(135deg,var(--accent),#3b82f6)', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 3px 12px var(--accent-glow)' }}>
+            <FiShield size={16} color="#fff" />
+          </div>
+          <span style={{ fontWeight: 800, fontSize: 17, color: 'var(--text-primary)' }}>RegulAI Sentinel</span>
+          <span style={{ fontSize: 11, color: 'var(--accent)', fontWeight: 600, padding: '2px 7px', background: 'var(--accent-subtle)', borderRadius: 3, border: '1px solid var(--border)' }}>BETA</span>
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          {['scan', 'patterns'].map(t => (
+            <button key={t} onClick={() => setTab(t)} style={{
+              padding: '7px 16px', borderRadius: 4, fontWeight: 600, fontSize: 13, cursor: 'pointer',
+              border: '1px solid ' + (tab === t ? 'var(--accent)' : 'var(--border)'),
+              background: tab === t ? 'var(--accent-subtle)' : 'transparent',
+              color: tab === t ? 'var(--accent)' : 'var(--text-secondary)',
+              transition: 'all 0.18s ease', display: 'flex', alignItems: 'center', gap: 6, fontFamily: 'inherit',
+            }}>
+              {t === 'scan' ? <><FiSearch size={13} /> Scan Documents</> : <><FiBarChart2 size={13} /> Patterns</>}
+            </button>
+          ))}
+          <div style={{ width: 1, height: 24, background: 'var(--border)', margin: '0 4px' }}/>
+          <ThemeToggle />
+        </div>
+      </nav>
+
+      <div style={{ maxWidth: 960, margin: '0 auto', padding: '48px 24px' }}>
+
+        {/* Hero */}
+        <div style={{ textAlign: 'center', marginBottom: 52 }}>
+          <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '5px 14px', background: 'var(--accent-subtle)', border: '1px solid var(--accent)', borderRadius: 3, marginBottom: 18 }}>
+            <span style={{ width: 7, height: 7, borderRadius: '50%', background: 'var(--accent)', display: 'inline-block', animation: 'pulse-glow 2s ease infinite' }}/>
+            <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--accent)' }}>AI-Powered Compliance Review</span>
+          </div>
+          <h1 style={{ margin: '0 0 14px', fontSize: 54, fontWeight: 900, color: 'var(--text-primary)', lineHeight: 1.1, letterSpacing: '-1.5px' }}>
+            Compliance{' '}
+            <span style={{ background: 'linear-gradient(135deg, var(--accent) 0%, #60a5fa 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
+              at Scale
+            </span>
+          </h1>
+          <p style={{ margin: 0, fontSize: 18, color: 'var(--text-secondary)', maxWidth: 520, marginLeft: 'auto', marginRight: 'auto', lineHeight: 1.6 }}>
+            Upload multiple documents, detect regulatory violations, and receive AI-powered remediation suggestions.
+          </p>
+        </div>
+
+        {tab === 'scan' && (
+          <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 4, boxShadow: 'var(--shadow-card)', overflow: 'hidden' }}>
+
+            {/* Tab bar */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 2, padding: '0 20px', borderBottom: '1px solid var(--border)', background: 'var(--surface2)', overflowX: 'auto' }}>
+              {docs.map(d => (
+                <div key={d.id} style={{ position: 'relative', display: 'flex', alignItems: 'center', flexShrink: 0 }}
+                  className="group"
+                >
+                  <button
+                    className={`doc-tab${d.id === activeId ? ' active' : ''}`}
+                    onClick={() => setActiveId(d.id)}
+                  >
+                    <span style={{ width: 7, height: 7, borderRadius: '50%', background: d.text.trim() ? 'var(--green)' : 'var(--text-dim)', flexShrink: 0, display: 'inline-block' }}/>
+                    <span style={{ maxWidth: 110, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{d.name}</span>
+                  </button>
+                  {docs.length > 1 && (
+                    <button
+                      onClick={e => { e.stopPropagation(); deleteDoc(d.id); }}
+                      style={{
+                        position: 'absolute', top: 4, right: -4, width: 16, height: 16,
+                        borderRadius: '50%', background: 'var(--border-light)', border: 'none', cursor: 'pointer',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        fontSize: 10, color: 'var(--text-muted)', lineHeight: 1,
+                        transition: 'all 0.15s ease', zIndex: 5, opacity: 0,
+                      }}
+                      className="tab-close"
+                      onMouseOver={e => { e.currentTarget.style.background = 'var(--red)'; e.currentTarget.style.color = '#fff'; e.currentTarget.style.opacity = 1; }}
+                      onMouseOut={e  => { e.currentTarget.style.background = 'var(--border-light)'; e.currentTarget.style.color = 'var(--text-muted)'; e.currentTarget.style.opacity = 0; }}
+                    >×</button>
+                  )}
+                </div>
+              ))}
+              {docs.length < 10 && (
+                <button onClick={addDoc} style={{ flexShrink: 0, padding: '8px 12px', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--accent)', borderRadius: 4, transition: 'background 0.15s', display: 'flex', alignItems: 'center' }}
+                  onMouseOver={e => e.currentTarget.style.background = 'var(--accent-subtle)'}
+                  onMouseOut={e  => e.currentTarget.style.background = 'none'}
+                  title="Add document"
+                ><FiPlus size={16} /></button>
+              )}
+              <div style={{ marginLeft: 'auto', paddingLeft: 16, paddingRight: 8, flexShrink: 0 }}>
+                <span style={{ fontSize: 11, color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>
+                  {docs.length}/10 · <span style={{ color: readyCount > 0 ? 'var(--green)' : 'var(--text-muted)' }}>{readyCount} ready</span>
+                </span>
+              </div>
+            </div>
+
+            {/* Document content */}
+            <div style={{ padding: 32 }}>
+              {activeDoc && (
+                <DocumentTab doc={activeDoc} onDelete={deleteDoc} onUpdate={updateDoc} isOnly={docs.length === 1} />
+              )}
+
+              {/* Scan button */}
+              <div style={{ marginTop: 28 }}>
+                <button
+                  className="accent-btn"
+                  onClick={handleScanAll}
+                  disabled={readyCount === 0}
+                  style={{ width: '100%', padding: '14px 32px', fontSize: 15, borderRadius: 4, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}
+                >
+                  <FiSearch size={16} />
+                  {readyCount === 0 ? 'Scan All Documents'
+                    : docs.length === 1 ? 'Scan Document'
+                    : `Scan All ${readyCount} Document${readyCount !== 1 ? 's' : ''}`}
+                </button>
+                {readyCount === 0 && (
+                  <p style={{ textAlign: 'center', color: 'var(--text-muted)', fontSize: 13, margin: '10px 0 0' }}>
+                    Add text or upload a PDF to enable scanning
+                  </p>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {tab === 'patterns' && <PatternsTab />}
+      </div>
+
+      {/* Footer */}
+      <div style={{ textAlign: 'center', padding: '24px', borderTop: '1px solid var(--border)', color: 'var(--text-muted)', fontSize: 12 }}>
+        RegulAI Sentinel · AI-Powered Compliance Review · Built with precision
+      </div>
+    </div>
+  );
+}
 
 // Made with Bob
